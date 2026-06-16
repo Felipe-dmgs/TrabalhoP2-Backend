@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  banco-dev:
+    image: postgres:15
+    container_name: banco_dev
+    restart: always
+    environment:
+      POSTGRES_USER: usuario
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: banco_desenvolvimento 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usuario -d banco_desenvolvimento"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  banco-test:
+    image: postgres:15
+    container_name: db_test
+    restart: always
+    environment:
+      POSTGRES_USER: usuario
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: banco_teste
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usuario -d banco_teste"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "5433:5432"
+    
+  web:
+    build:
+      context: .              
+      dockerfile: Dockerfile  
+    ports:
+      - "8000:8000"
+    depends_on:
+      - banco-dev
+      - banco-test
+    environment:
+      - DATABASE_URL=postgresql://usuario:secret@banco-dev:5432/banco_desenvolvimento
+      - DATABASE_TEST_URL=postgresql://usuario:secret@banco-test:5432/banco_teste
+
+volumes:
+  pgdata:
